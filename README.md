@@ -49,7 +49,7 @@ Open the **Vite** URL in your browser (check the terminal for the exact port). T
 
 ### If `npm run dev` fails (ports in use)
 
-- **`EADDRINUSE` on 3001** — another process (often a previous run of this app) is using that port. Stop it, or set a different port, e.g. `PORT=3002 npm run dev`, and [point Vite at that port](vite.config.js) under `server.proxy` for `/api`, or free the old process.
-- **Vite “Port 5173 is in use”** — Vite will try 5174, 5175, etc.; use the URL printed in the terminal.
+- **`EADDRINUSE` on 3001** (or your `PORT`) — something else is already listening (often another instance of this server). Either stop that process or use another port, e.g. add `PORT=3002` to `.env` or run `PORT=3002 npm run dev` (the proxy follows `PORT` automatically).
+- **Vite “Port 5173 is in use”** — Vite will try 5174, 5175, and so on; open the exact URL shown in the terminal.
 
 Transcript files are written to `transcripts/<filename-stem>.json` at the repo root.
