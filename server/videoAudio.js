@@ -38,18 +38,14 @@ export function shouldExtractAudioFromVideo(mimetype, originalname) {
 }
 
 /**
- * Extract mono 16 kHz PCM WAV suitable for speech transcription.
- * @param {Buffer} videoBuffer
- * @param {string} originalname — used for container hint (extension)
- * @returns {Promise<Buffer>}
+ * Extract mono 16 kHz PCM WAV from a video (or any media) file on disk — reads the source once, no full-file RAM buffer.
+ * @param {string} inputPath — path to uploaded video/container file (caller deletes after use)
+ * @returns {Promise<Buffer>} WAV bytes for transcription
  */
-export async function extractAudioWithFfmpeg(videoBuffer, originalname) {
-  const ext = path.extname(originalname || "") || ".mp4";
+export async function extractAudioWithFfmpegFromPath(inputPath) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "lms-audio-"));
-  const inputPath = path.join(dir, `input${ext}`);
   const outputPath = path.join(dir, "audio.wav");
   try {
-    await fs.writeFile(inputPath, videoBuffer);
     await execFileAsync(
       "ffmpeg",
       [

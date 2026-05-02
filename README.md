@@ -20,7 +20,10 @@ Create or edit `.env` in the project root:
 DEEPGRAM_API_KEY=your_key_here
 ```
 
-Optional: set `PORT` in `.env` or the shell for the API (default **3001**). The Vite dev proxy uses the same value so the UI keeps working.
+Optional in `.env`:
+
+- **`PORT`** — API listen port (default **3001**). The Vite dev proxy uses the same value.
+- **`MAX_UPLOAD_BYTES`** — max upload size in bytes (default **20 GiB**). Large raw footage may require raising this or freeing disk in `TMPDIR`.
 
 ### Install and run
 
@@ -37,6 +40,8 @@ That starts:
 2. **Vite dev server** — usually `http://localhost:5173` (if 5173 is taken, Vite picks the next free port, e.g. **5174**)
 
 Open the **Vite** URL in your browser (check the terminal for the exact port). The UI calls `/api/*`, which Vite proxies to the API.
+
+**Use the Vite address for the app** (path `/`). If you open the API host directly (`http://localhost:3001/…`), you only get JSON—there is no HTML UI there, and paths like `/babysit` do not exist (you may see “Cannot GET …”). Sanity check the API with `GET http://localhost:3001/api/health`.
 
 ### Other commands
 
