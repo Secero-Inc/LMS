@@ -38,13 +38,14 @@ export function shouldExtractAudioFromVideo(mimetype, originalname) {
 }
 
 /**
- * Extract mono 16 kHz PCM WAV from a video (or any media) file on disk — reads the source once, no full-file RAM buffer.
- * @param {string} inputPath — path to uploaded video/container file (caller deletes after use)
- * @returns {Promise<Buffer>} WAV bytes for transcription
+ * Extract compact mono MP3 from a video (or any media) file on disk.
+ * Keeps large raw footage and extracted audio out of app memory.
+ * @param {string} inputPath path to uploaded video/container file
+ * @returns {Promise<{ audioPath: string, cleanup: () => Promise<void> }>}
  */
-export async function extractAudioWithFfmpegFromPath(inputPath) {
+export async function extractAudioWithFfmpegToPath(inputPath) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "lms-audio-"));
-  const outputPath = path.join(dir, "audio.wav");
+  const outputPath = path.join(dir, "audio.mp3");
   try {
     await execFileAsync(
       "ffmpeg",
@@ -56,19 +57,25 @@ export async function extractAudioWithFfmpegFromPath(inputPath) {
         "-i",
         inputPath,
         "-vn",
-        "-acodec",
-        "pcm_s16le",
         "-ar",
         "16000",
         "-ac",
         "1",
+        "-codec:a",
+        "libmp3lame",
+        "-b:a",
+        "64k",
         outputPath,
       ],
       { maxBuffer: 10 * 1024 * 1024 }
     );
-    return await fs.readFile(outputPath);
+    return {
+      audioPath: outputPath,
+      cleanup: () => fs.rm(dir, { recursive: true, force: true }),
+    };
   } catch (err) {
     const code = err && typeof err === "object" && "code" in err ? err.code : undefined;
+    await fs.rm(dir, { recursive: true, force: true });
     if (code === "ENOENT") {
       throw new Error(
         "ffmpeg not found. Install ffmpeg (e.g. brew install ffmpeg) and ensure it is on PATH."
@@ -80,7 +87,5 @@ export async function extractAudioWithFfmpegFromPath(inputPath) {
         : "";
     const msg = stderr.trim() || (err instanceof Error ? err.message : "ffmpeg failed");
     throw new Error(`Audio extraction failed: ${msg}`);
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true });
   }
 }

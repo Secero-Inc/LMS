@@ -12,7 +12,7 @@ import { DeepgramClient } from "@deepgram/sdk";
 import { MAX_UPLOAD_BYTES } from "./uploadConfig.js";
 import { transcriptJsonFilename } from "./transcriptFilename.js";
 import {
-  extractAudioWithFfmpegFromPath,
+  extractAudioWithFfmpegToPath,
   shouldExtractAudioFromVideo,
 } from "./videoAudio.js";
 
@@ -71,19 +71,35 @@ app.post("/api/transcribe", upload.single("file"), async (req, res) => {
     const deepgram = getDeepgramClient();
     let result;
     if (shouldExtractAudioFromVideo(file.mimetype, file.originalname)) {
-      const wavBuffer = await extractAudioWithFfmpegFromPath(file.path);
-      result = await deepgram.listen.v1.media.transcribeFile(wavBuffer, {
-        model: "nova-3",
-        smart_format: true,
-      });
+      console.time(`ffmpeg:${file.originalname}`);
+      const extracted = await extractAudioWithFfmpegToPath(file.path);
+      console.timeEnd(`ffmpeg:${file.originalname}`);
+
+      try {
+        console.time(`deepgram:${file.originalname}`);
+        result = await deepgram.listen.v1.media.transcribeFile(
+          createReadStream(extracted.audioPath),
+          {
+            model: "nova-3",
+            smart_format: true,
+          },
+          { timeoutInSeconds: 300 }
+        );
+        console.timeEnd(`deepgram:${file.originalname}`);
+      } finally {
+        await extracted.cleanup();
+      }
     } else {
+      console.time(`deepgram:${file.originalname}`);
       result = await deepgram.listen.v1.media.transcribeFile(
         createReadStream(file.path),
         {
           model: "nova-3",
           smart_format: true,
-        }
+        },
+        { timeoutInSeconds: 300 }
       );
+      console.timeEnd(`deepgram:${file.originalname}`);
     }
 
     const outName = transcriptJsonFilename(file.originalname);
